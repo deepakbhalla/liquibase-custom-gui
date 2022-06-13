@@ -5,4 +5,4 @@ This GUI has been created additionally for running the liquibase update operatio
 
 ## Custom GUI for Liquibase
 
-![Service Logs](screenshots/1_custom_liquibase_gui.png?raw=true "Liquibase Customm GUI")
+![Service Logs](screenshots/1_custom_liquibase_gui_screenshot.png?raw=true "Liquibase Customm GUI")
