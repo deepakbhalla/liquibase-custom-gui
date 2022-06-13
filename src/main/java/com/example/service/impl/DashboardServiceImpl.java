@@ -5,8 +5,10 @@ import java.util.List;
 import java.util.Objects;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import com.example.entities.DatabaseChangeLog;
+import com.example.exceptions.OverviewException;
 import com.example.models.DatabaseChangeSummary;
 import com.example.models.OverviewDetails;
 import com.example.repositories.DatabaseChangeLogRepository;
@@ -58,13 +60,13 @@ public class DashboardServiceImpl implements DashboardService {
 					.recentExecutor(changeLogDetails.get(0).getAuthor())
 					.lastExecutedOn(changeLogDetails.get(0).getDateexecuted())
 					.deploymentId(changeLogDetails.get(0).getDeploymentId())
-					.liveRelease(this.liveRelease)
-					.nextRelease(this.nextRelease)
-					.environment(this.environmentName)
 					.changeSummary(changeSummaryList)
 					.build();
 		}
 		
+		returnObject.setEnvironment(this.environmentName);
+		returnObject.setLiveRelease(this.liveRelease);
+		returnObject.setNextRelease(this.nextRelease);
 		return returnObject;
 	}
 	

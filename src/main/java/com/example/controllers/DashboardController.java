@@ -24,19 +24,6 @@ public class DashboardController {
 	DashboardService dashboardService;
 
 	/**
-	 * Redirects to index page of the application.
-	 * 
-	 * @return modelAndView - ModelAndView
-	 */
-	@GetMapping("/home")
-	public ModelAndView redirect() {
-		ModelAndView modelAndView = new ModelAndView();
-		modelAndView.setViewName("index");
-		return modelAndView;
-	}
-	
-
-	/**
 	 * Heath check endpoint.
 	 * 
 	 * @return ResponseEntity<String>
@@ -53,11 +40,7 @@ public class DashboardController {
 	 */
 	@GetMapping("/overview")
 	public ResponseEntity<OverviewDetails> getOverviewDetails() {
-		try {
-			return new ResponseEntity<>(dashboardService.getOverviewDetails(), HttpStatus.OK);
-		} catch (Exception e) {
-			throw OverviewException.builder().details(e.getMessage()).httpStatus(HttpStatus.INTERNAL_SERVER_ERROR).build();
-		}
+		return new ResponseEntity<>(dashboardService.getOverviewDetails(), HttpStatus.OK);
 	}
 	
 	/**

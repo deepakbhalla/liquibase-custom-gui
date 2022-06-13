@@ -12,7 +12,10 @@ import org.springframework.boot.autoconfigure.liquibase.LiquibaseProperties;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.ModelAndView;
+
 import liquibase.Liquibase;
 import liquibase.database.Database;
 import liquibase.database.DatabaseFactory;
@@ -21,6 +24,7 @@ import liquibase.exception.LiquibaseException;
 import liquibase.resource.ClassLoaderResourceAccessor;
 
 @RestController
+@RequestMapping("/liquibase")
 public class LiquibaseOperationsController {
 
 	private static final Logger LOG = LoggerFactory.getLogger(LiquibaseOperationsController.class);
@@ -28,7 +32,19 @@ public class LiquibaseOperationsController {
 	@Autowired
 	private LiquibaseProperties liquibaseProperties;
 	
-	@GetMapping("/liquibase/run")
+	/**
+	 * Redirects to index page of the application.
+	 * 
+	 * @return modelAndView - ModelAndView
+	 */
+	@GetMapping("/home")
+	public ModelAndView redirect() {
+		ModelAndView modelAndView = new ModelAndView();
+		modelAndView.setViewName("index");
+		return modelAndView;
+	}
+	
+	@GetMapping("/run")
 	public ResponseEntity<String> updateLiquibase() {
 		
 		try (Connection c = DriverManager.getConnection(

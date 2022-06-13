@@ -6,7 +6,7 @@
 			xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd
 		http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
 	
-		<changeSet author="author.name" id="2 Inserted data in employee table">
+		<changeSet author="deepak.bhalla" id="125555122548158_RELEASE-2_USERSTORY-1235_Inserted data in employee table">
 			<!-- Validations -->
 			<preConditions>
 				<tableExists tableName="EMPLOYEE"/>

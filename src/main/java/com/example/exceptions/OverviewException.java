@@ -3,10 +3,8 @@ package com.example.exceptions;
 import org.springframework.http.HttpStatus;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.ToString;
 
-@Builder
 @AllArgsConstructor
 @ToString
 public class OverviewException extends RuntimeException {
@@ -15,5 +13,5 @@ public class OverviewException extends RuntimeException {
 
 	final HttpStatus httpStatus;
 	final String error;
-	final String details;
+	final String message;
 }

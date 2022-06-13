@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>W3.CSS Template</title>
+<meta charset="UTF-8">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+</head>
+
+<style>
+	html,body,h1,h2,h3,h4,h5 {font-family: "Raleway", sans-serif}
+	
+	.modal {
+		display: none; /* Hidden by default */
+		position: fixed; /* stay in place */
+		z-index: 1; /* Sit on top */
+		padding-top: 100px; /* Location of the box */
+		left: 0;
+		top: 0;
+		width: 100%; /* Full width */
+		height:  100%; /* Full height */
+		overflow: auto; /* enable scroll if needed */
+		background-color: rgb(0,0,0); /* Fallback color */
+		background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+	}
+	
+	/* Model Content */
+	.modal-content {
+		background-color: #fefefe;
+		margin: auto;
+		padding: 20px;
+		border: 1px solid #888;
+		width: 50%;
+	}
+	
+	/* The Close Button */
+	.close {
+		color: #aaaaaa;
+		float: right;
+		font-size: 28px;
+		font-weight: bold;
+	}
+	
+	/* Close Hover and Focus */
+	.close-hover,
+	.close-focus {
+		color: #000;
+		text-decoration: none;
+		cursor: pointer;
+	}
+	
+</style>
+
+<script>
+
+	$(document).ready(function() {
+		
+		loadOverviewDetails();
+		
+		// ################# Dashboard Overview Details on Page Load ###################
+		function loadOverviewDetails() {
+			$.ajax({
+				url: "http://localhost:8080/dashboard/api/v1/overview"
+			}).then(function(data) {
+				// ----- Overview Grid -----
+				$('.executed').html(data.executedCount);
+				$('.markran').html(data.markRanCount);
+				$('.recent-author').html(data.recentContributor);
+				$('.recent-executor').html(data.recentExecutor);
+				$('.last-executed-on').html(data.lastExecutedOn);
+				$('.last-deployment-id').html(data.deploymentId);
+				$('.live-release').html(data.liveRelease);
+				$('.next-release').html(data.nextRelease);
+				$('.environment-name').html(data.environment);
+				
+				// ----- Recent Change Set Details -----
+				var recentChangesTableElement = $('#recentChangesTable');
+				jQuery(recentChangesTableElement).html('');
+				
+				
+				if (data.changeSummary == null || data.changeSummary.length == 0) {
+					
+					$('.no-changeset-available').html('Changelog details are not available.');
+					$('.no-changeset-available').show();
+					$('.executed').html('NA');
+					$('.markran').html('NA');
+					$('.recent-author').html('NA');
+					$('.recent-executor').html('NA');
+					$('.last-executed-on').html('NA');
+					$('.last-deployment-id').html('NA');
+				} 
+				else {
+					// ----- Prepare recent change set table content -----
+					var text = '<table class="w3-table w3-striped w3-white"><tbody>';
+					
+					for (var i = 0; i < data.changeSummary.length; i++) {
+						
+						console.log(data.changeSummary.execType);
+						
+						if (data.changeSummary[i].execType == 'MARK_RAN') {
+							
+							text += '<tr style="color: red">';
+						} else {
+							text += '<tr>';
+						}
+						text += '<td>' + data.changeSummary[i].id + '</td>';
+						text += '<td>' + data.changeSummary[i].author + '</td>';
+						text += '</tr>';
+					}
+					text += '</tbody></table>';
+					$('#recentChangesTable').html(text);
+					$('.no-changeset-available').html('');
+					$('.no-changeset-available').hide();
+				}
+			});
+			console.log("page loaded");
+		};
+		
+		// ################# Generate Change Id Form Submit Handler ###################
+		$("#changeIdForm").submit(function(e) {
+			// prevent default functionality
+			e.preventDefault();
+			
+			// get the action-url of the form
+			var actionurl = e.currentTarget.action;
+			
+			var action_src = "http://localhost:8080/dashboard/api/v1/liquibase/changeset-id/release/" + document.getElementsByName("changeIdReleaseNumber")[0].value 
+								+ "/summary/" + document.getElementsByName("changeIdShortSummary")[0].value 
+								+ "/item/" + document.getElementsByName("changeIdTrackingId")[0].value;
+			
+			var changeIdForm = document.getElementById('changeIdForm');
+			changeIdForm.action = action_src;
+			$.ajax({
+				
+				url: changeIdForm.action,
+				type: 'get',
+				data: $("#changeIdForm").serialize()
+			}).then(function(data) {
+				var copyChangeSetIdToClipboard = $('.copyChangeSetIdToClipboard');
+				jQuery(copyChangeSetIdToClipboard).html('');
+				$('#copyChangeSetIdToClipboard').html("Copy to clipboard");
+				
+				var modelWindowHeading = $('.model-window-heading');
+				jQuery(modelWindowHeading).html('');
+				$('.model-window-heading').append('Unique Change Set Id');
+				
+				var changeId = $('.show-change-id');
+				jQuery(changeId).html('');
+				$('.show-change-id').append(data);
+				showModelWindow();
+			});
+		});
+		
+		// ##################### Execute Liquibase Update Form Submit Handler #####################
+		$('#liquibaseRunForm').submit(function(e) {
+			
+			var modelWindowHeading = $('.model-window-heading');
+			jQuery(modelWindowHeading).html('');
+			$('.model-window-heading').append('Liquibase Execution Status');
+			
+			var copyChangeSetIdToClipboard = $('.copyChangeSetIdToClipboard');
+			jQuery(copyChangeSetIdToClipboard).html('');
+			$('#copyChangeSetIdToClipboard').hide();
+			
+			var changeId = $('.show-change-id');
+			jQuery(changeId).html('');
+			$('.show-change-id').append("Liquibase execution is in progress ...");
+			showModelWindow();
+			
+			e.preventDefault();
+			
+			var actionUrl = e.currentTarget.action;
+			
+			var action_src = "http://localhost:8080/liquibase/run";
+			var liquibaseRunForm = document.getElementById('liquibaseRunForm');
+			liquibaseRunForm.action = action_src;
+			
+			$.ajax({
+				
+				url: liquibaseRunForm.action,
+				type: 'get',
+				data: $("#liquibaseRunForm").serialize()
+			}).then(function(data) {
+				
+				var modelWindowHeading = $('.model-window-heading');
+				jQuery(modelWindowHeading).html('');
+				$('.model-window-heading').append('Liquibase Execution Status');
+				
+				var copyChangeSetIdToClipboard = $('.copyChangeSetIdToClipboard');
+				jQuery(copyChangeSetIdToClipboard).html('');
+				$('#copyChangeSetIdToClipboard').show();
+				$('#copyChangeSetIdToClipboard').html("Ok");
+				
+				var changeId = $('.show-change-id');
+				jQuery(changeId).html('');
+				
+				var currentDate = new Date();
+				var dateTime = " on " + currentDate.getDate() + "/"
+									  + (currentDate.getMonth() + 1) + "/"	
+									  + currentDate.getFullYear() + "/"
+									  + currentDate.getHours() + ":"
+									  + currentDate.getMinutes() + ":"
+									  + currentDate.getSeconds();
+				
+				$('.show-change-id').append(data).append(dateTime).append('.');
+				
+				loadOverviewDetails();
+				
+				showModelWindow();
+			});
+		});		
+		
+		
+		// ########################## Show Model Window #######################
+		function showModelWindow() {
+			// Get the modal
+			var modal = document.getElementById("myModal");
+			modal.style.display = "block";
+			
+			$('html,body').animate({
+				scrollTop: $("#overviewDiv").offset().top},
+			'slow');
+		}
+		
+		// Get the modal
+		var modal = document.getElementById("myModal");
+		
+		// Get the button that opens the model
+		var btn = document.getElementById("changeIdBtn");
+		
+		// Get the <span> element that closes the modal
+		var span = document.getElementsByClassName("close")[0];
+		
+		// When the user clicks on <span> (x), close the modal
+		span.onclick = function() {
+			clearGenerateChangeIdFields();
+			modal.style.display = "none";
+		}
+		
+		// When the user clicks anywhere outside of the modal, close it
+		window.onclick = function(event) {
+			if (event.target == modal) {
+				clearGenerateChangeIdFields();
+				modal.style.display = "none";
+			}
+		}
+		
+		// ############### Copy Generated Change Id to Clipboard #############
+		document.getElementById('copyChangeSetIdToClipboard').addEventListener('click', clickListener);
+		
+		function clickListener() {
+			var copyText = document.getElementById("showChangeId").innerHTML;
+			copyToClipboard(copyText);
+			clearGenerateChangeIdFields();
+			var modal = document.getElementById("myModal");
+			modal.style.display = "none";
+		}
+
+		$('#changeIdReleaseNumber').keyup(function() {
+			$(this).val($(this).val().toUpperCase());
+		});
+		
+		$('#changeIdTrackingId').keyup(function() {
+			$(this).val($(this).val().toUpperCase());
+		});
+		
+		function clearGenerateChangeIdFields() {
+			
+			var changeIdReleaseNumber = $('#changeIdReleaseNumber');
+			jQuery(changeIdReleaseNumber).val('');
+			
+			var changeIdTrackingId = $('#changeIdTrackingId');
+			jQuery(changeIdTrackingId).val('');
+			
+			var changeIdShortSummary = $('#changeIdShortSummary');
+			jQuery(changeIdShortSummary).val('');
+			
+			var liquibaseRunExecutorName = $('#liquibaseRunExecutorName');
+			jQuery(liquibaseRunExecutorName).val('');
+			
+			var liquibaseRunExecutorEmailId = $('#liquibaseRunExecutorEmailId');
+			jQuery(liquibaseRunExecutorEmailId).val('');
+		}
+		
+		function copyToClipboard(text) {
+			
+			var sampleTextArea = document.createElement("textarea");
+			document.body.appendChild(sampleTextArea);
+			sampleTextArea.value = text;
+			sampleTextArea.select();
+			document.execCommand("copy");
+			document.body.removeChild(sampleTextArea);
+		}
+		
+		$(function() {
+		    $('a[href*=\\#]:not([href=\\#])').on('click', function() {
+		        var target = $(this.hash);
+		        target = target.length ? target : $('[name=' + this.hash.substr(1) +']');
+		        if (target.length) {
+		            $('html,body').animate({
+		                scrollTop: target.offset().top
+		            }, 500);
+		            return false;
+		        }
+		    });
+		});
+	});
+
+	
+	// Get the Sidebar
+	var mySidebar = document.getElementById("mySidebar");
+
+	// Get the DIV with overlay effect
+	var overlayBg = document.getElementById("myOverlay");
+
+	// Toggle between showing and hiding the sidebar, and add overlay effect
+	function w3_open() {
+	  if (mySidebar.style.display === 'block') {
+	    mySidebar.style.display = 'none';
+	    overlayBg.style.display = "none";
+	  } else {
+	    mySidebar.style.display = 'block';
+	    overlayBg.style.display = "block";
+	  }
+	}
+
+	// Close the sidebar with the close button
+	function w3_close() {
+	  mySidebar.style.display = "none";
+	  overlayBg.style.display = "none";
+	}
+
+</script>
+
+<body class="w3-light-grey">
+
+<!-- Top container -->
+<div class="w3-bar w3-top w3-black w3-large" style="z-index:4">
+  <button class="w3-bar-item w3-button w3-hide-large w3-hover-none w3-hover-text-light-grey" onclick="w3_open();"><i class="fa fa-bars"></i>  Menu</button>
+  <span class="w3-bar-item w3-right">Liquibase GUI</span>
+</div>
+
+<!-- Sidebar/menu -->
+<nav class="w3-sidebar w3-collapse w3-white w3-animate-left" style="z-index:3;width:300px;" id="mySidebar"><br>
+  <div class="w3-container w3-row">
+    <div class="w3-col s8 w3-bar">
+      <span><strong>Welcome, Team</strong></span><br>
+      <span id="environmentNameId" class="environment-name"></span>
+      <span> Environment</span>
+    </div>
+  </div>
+  <hr>
+  <div class="w3-container">
+    <h5>Dashboard</h5>
+  </div>
+  <div class="w3-bar-block">
+    <a href="#" class="w3-bar-item w3-button w3-padding-16 w3-hide-large w3-dark-grey w3-hover-black" onclick="w3_close()" title="close menu"><i class="fa fa-remove fa-fw"></i>  Close Menu</a>
+    <a href="#overviewDiv" class="w3-bar-item w3-button w3-padding w3-blue"><i class="fa fa-users fa-fw"></i>  Overview</a>
+    <a href="#generateChangeIdDiv" class="w3-bar-item w3-button w3-padding"><i class="fa fa-bullseye fa-fw"></i>  Generate Change Id</a>
+    <a href="#liquibaseRunDiv" class="w3-bar-item w3-button w3-padding"><i class="fa fa-bullseye fa-fw"></i>  Execute Liquibase</a>
+    <a href="#processDiv" class="w3-bar-item w3-button w3-padding"><i class="fa fa-bullseye fa-fw"></i>  Process Flow</a>
+	<br><br>
+  </div>
+</nav>
+
+
+<!-- Overlay effect when opening sidebar on small screens -->
+<div class="w3-overlay w3-hide-large w3-animate-opacity" onclick="w3_close()" style="cursor:pointer" title="close side menu" id="myOverlay"></div>
+
+<!-- !PAGE CONTENT! -->
+<div class="w3-main" style="margin-left:300px;margin-top:43px;">
+	
+	<div id="overviewDiv">
+		<br>
+		<!-- First Grid Row -->
+		<div class="w3-row-padding">
+			<br>
+			<div class="w3-quarter">
+		      <div class="w3-container w3-blue w3-padding-16">
+		        <div class="executed">
+		          <h7 style="overvflow-wrap: anywhere"></h7>
+		        </div>
+		        <h4>Executed</h4>
+		      </div>
+		    </div>
+		    
+		    <div class="w3-quarter">
+		      <div class="w3-container w3-red w3-padding-16">
+		        <div class="markran">
+		          <h7 style="overvflow-wrap: anywhere"></h7>
+		        </div>
+		        <h4>MARK RAN</h4>
+		      </div>
+		    </div>
+		    
+		    <div class="w3-quarter">
+		      <div class="w3-container w3-teal w3-padding-16">
+		        <div class="recent-author">
+		          <h7 style="overvflow-wrap: anywhere"></h7>
+		        </div>
+		        <h4>Recent Author</h4>
+		      </div>
+		    </div>
+		    
+		    <div class="w3-quarter">
+		      <div class="w3-container w3-orange w3-padding-16">
+		        <div class="recent-executor">
+		          <h7 style="overvflow-wrap: anywhere">52</h7>
+		        </div>
+		        <h4>Recent Executor</h4>
+		      </div>
+		    </div>
+		</div>
+		
+		<!-- Second Grid Row -->
+		<div class="w3-row-padding">
+			<br>
+			<div class="w3-quarter">
+		      <div class="w3-container w3-teal w3-padding-16">
+		        <div class="last-executed-on">
+		          <h7 style="overvflow-wrap: anywhere"></h7>
+		        </div>
+		        <h4>Last Executed On</h4>
+		      </div>
+		    </div>
+		    
+		    <div class="w3-quarter">
+		      <div class="w3-container w3-orange w3-padding-16">
+		        <div class="last-deployment-id">
+		          <h7 style="overvflow-wrap: anywhere"></h7>
+		        </div>
+		        <h4>Last Deployment ID</h4>
+		      </div>
+		    </div>
+		    
+		    <div class="w3-quarter">
+		      <div class="w3-container w3-grey w3-text-white w3-padding-16">
+		        <div class="live-release">
+		          <h7 style="overvflow-wrap: anywhere"></h7>
+		        </div>
+		        <h4>Live Release</h4>
+		      </div>
+		    </div>
+		    
+		    <div class="w3-quarter">
+		      <div class="w3-container w3-teal w3-padding-16">
+		        <div class="next-release">
+		          <h7 style="overvflow-wrap: anywhere"></h7>
+		        </div>
+		        <h4>Next Release</h4>
+		      </div>
+		    </div>
+		</div>
+		
+		<div class="w3-panel">
+			<div class="w3-row-padding" style="margin:0 -16px">
+				<div class="w3-container">
+					<h5 style="font-weight: 600;">Recent Change Set Summary</h5>
+					<p class="no-changeset-available"></p>
+					<div id="recentChangesTable">
+					</div>
+				</div>
+			</div>
+		</div>
+		<hr>
+	</div>	
+
+	<!-- Generate Liquibase Change Set Id -->
+	<div class="w3-container" id="generateChangeIdDiv">
+		<br><br>
+		<h5 style="font-weight: 600;">Generate Change Set Unique Id</h5>
+		<p>Liquibase needs a unique id for each changeset. Please fill the below details to generate the one which you can use in your changelog file.</p>
+		
+		<form id="changeIdForm" action="">
+			<ul class="w3-ul w3-card-4 w3-white">
+		      <li class="w3-padding-16">
+		        <span class="w3-large" style="float: left">Release Number</span>
+		        <input name="changeIdReleaseNumber" required class="changeIdReleaseNumber" id="changeIdReleaseNumber" style="float: right" placeholder="e.g., R10"></br>
+		      </li>
+		      <li class="w3-padding-16">
+		        <span class="w3-large" style="float: left">Change Tracking Id</span>
+		        <input name="changeIdTrackingId" required class="changeIdTrackingId" id="changeIdTrackingId" style="float: right" placeholder="e.g., R10"></br>
+		      </li>
+		      <li class="w3-padding-16">
+		        <span class="w3-large" style="float: left">Change Short Summary</span>
+		        <input name="changeIdShortSummary" required class="changeIdShortSummary" id="changeIdShortSummary" style="float: right" placeholder="e.g., R10"></br>
+		      </li>
+		      <li class="w3-padding-16">
+		        <button id="changeIdBtn" class="w3-button w3-dark-grey">Generate Unique Change Id <i class="fa fa-arrow-right"></i></button>
+		        <div class="generated-change-id"></div>
+		      </li>
+		    </ul>	
+		</form>
+	</div>
+
+	<!-- Liquibase Run -->
+	<div class="w3-container" id="liquibaseRunDiv">
+		<br><br>
+		<h5 style="font-weight: 600;">Execute Liquibase</h5>
+		<p>This action would trigger the liquibase update operation to execute the available changelog files and would apply the provided changes on the database. If you want to proceed, please provide the below details and click on 'Execute Liquibase' button.</p>
+		
+		<form id="liquibaseRunForm" action="">
+			<ul class="w3-ul w3-card-4 w3-white">
+		      <li class="w3-padding-16">
+		        <span class="w3-large" style="float: left">Your Name</span>
+		        <input name="liquibaseRunExecutorName" required class="liquibaseRunExecutorName" id="liquibaseRunExecutorName" style="float: right;" placeholder="Please enter your name"></br>
+		      </li>
+		      <li class="w3-padding-16">
+		        <span class="w3-large" style="float: left">Your Email Id</span>
+		        <input name="liquibaseRunExecutorEmailId" required class="liquibaseRunExecutorEmailId" id="liquibaseRunExecutorEmailId" style="float: right; width: 400px;" placeholder="Please enter your email id"></br>
+		      </li>
+		      <li class="w3-padding-16">
+		        <button id="liquibaseRunBtn" class="w3-button w3-dark-grey">Execute Liquibase <i class="fa fa-arrow-right"></i></button>
+		        <div class="liquibase-run"></div>
+		      </li>
+		    </ul>	
+		</form>
+	</div>
+
+	<!-- Process Flow -->
+	<div class="w3-container" id="processDiv">
+		<br><br>
+		<h5 style="font-weight: 600;">Process Flow</h5>
+		<p>Please read the below step by step process to be followed while using Liquibase environment.</p>
+		
+		<div class="w3-container w3-dark-grey">
+		    <div class="w3-row">
+
+		      <div class="w3-container w3-third" style="width: 25% !important;">
+		        <h5 class="w3-bottombar w3-border-green">1. Changeset Id</h5>
+		        <p>Generate unique change id from 'Generate Change Id' link on the left hand side menu.</p>
+		        <p>Copy the generated unique changeset id.</p>
+		      </div>
+
+		      <div class="w3-container w3-third" style="width: 25% !important;">
+		        <h5 class="w3-bottombar w3-border-red">2. Changelog File</h5>
+		        <p>Create a new changelog file in the respective release and it's one of the appropriate sub-folder (e.g., table/sequence/data etc.)</p>
+		        <p>Use the copied change set id for the id of the new change set in the changelog file.</p>
+		        <p>Update the reference of this change log file in the parent change log file (wherever applicable).</p>
+		      </div>
+
+		      <div class="w3-container w3-third" style="width: 25% !important;">
+		        <h5 class="w3-bottombar w3-border-orange">3. Code Review</h5>
+		        <p>Get the changes peer reviewed.</p>
+		      </div>
+		      
+		      <div class="w3-container w3-third" style="width: 25% !important;">
+		        <h5 class="w3-bottombar w3-border-red">4. Execute Liquibase</h5>
+		        <p>Execute liquibase changes from 'Execute Liquibase' link on the left hand side menu.</p>
+		        <p>You'll be prompted once the execution is in progress.</p>
+		        <p>You'll be prompted once the execution gets finished.</p>
+		      </div>
+		      
+		    </div>
+		    
+	  </div>		
+	</div>
+	
+	</br></br></br></br></br></br></br></br></br></br></br></br></br></br></br></br></br></br></br></br></br></br></br></br></br></br></br>
+	
+	<!-- The Modal -->
+	<div id="myModal" class="modal">
+		<!-- Modal Content -->
+		<div class="modal-content">
+			<span class="close" style="padding-left: 20px;">x</span>
+			<h3 class="model-window-heading"></h3>
+			<p id="showChangeId" class="show-change-id" style="word-break: break-all; white-space: normal;"></p>
+			<button id="copyChangeSetIdToClipboard" class="w3-button w3-dark-grey copyChangeSetIdToClipboard">Copy to clipboard</button>
+		</div>
+	</div>
+
+  <!-- End page content -->
+</div>
+</body>
+</html>

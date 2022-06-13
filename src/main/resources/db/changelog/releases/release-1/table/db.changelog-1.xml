@@ -6,9 +6,35 @@
 			xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd
 		http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
 	
-		<changeSet author="author.name" id="1 Created new table">
+		<changeSet author="deepak.bhalla" id="1655121148816_RELEASE-2_USERSTORY-1234_Created new table">
 			<!-- Validations -->
 			<preConditions>
+				<not>
+					<tableExists tableName="EMPLOYEE"/>
+				</not>
+			</preConditions>
+			<!-- Create Table -->
+			<createTable tableName="EMPLOYEE">
+				<column autoIncrement="true" name="id" type="INT">
+					<constraints primaryKey="true"/>
+				</column>
+				<column name="EMPLOYEE_NAME" type="VARCHAR(255)">
+					<constraints nullable="false"/>
+				</column>  
+				<column name="EMPLOYEE_ADDRESS" type="VARCHAR(255)">
+					<constraints nullable="false"/>
+				</column>            
+			</createTable>
+			<!-- Roll back -->
+			<rollback>
+				<dropTable tableName="EMPLOYEE"/>
+			</rollback>
+			<comment>Created new table named 'Employee'</comment>
+		</changeSet>
+		
+		<changeSet author="deepak.bhalla" id="18555122548878_RELEASE-2_USERSTORY-1234_Created new table">
+			<!-- Validations -->
+			<preConditions onFail="MARK_RAN" onFailMessage="Table Already Exists">
 				<not>
 					<tableExists tableName="EMPLOYEE"/>
 				</not>
